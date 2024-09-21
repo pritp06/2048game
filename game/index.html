@@ -5,10 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>2048 Game with High Score</title>
     
-    <!-- Import Poppins font from Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -16,26 +15,26 @@
         }
 
         body {
-            font-family: 'Poppins', sans-serif; /* Applying Poppins font */
+            font-family: 'Poppins', sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
             flex-direction: column;
             height: 100vh;
             background-color: #faf8ef;
+            padding: 10px;
         }
 
         h1 {
             margin-bottom: 20px;
             font-size: 36px;
-            font-weight: 600; /* Bold */
+            text-align: center;
         }
 
         #score-title,
         #high-score-title {
             margin-bottom: 10px;
             font-size: 24px;
-            font-weight: 600; /* Bold for visibility */
         }
 
         #game-container {
@@ -62,7 +61,6 @@
             position: relative;
         }
 
-        /* Adding color for different tile values */
         .tile[data-value='2'] {
             background-color: #eee4da;
         }
@@ -98,6 +96,28 @@
         .tile[data-value='2048'] {
             background-color: #edc850;
             color: #f9f6f2;
+        }
+
+        @media (max-width: 600px) {
+            #game-container {
+                grid-template-columns: repeat(4, 70px);
+                grid-template-rows: repeat(4, 70px);
+                gap: 8px;
+            }
+            .tile {
+                width: 70px;
+                height: 70px;
+                font-size: 24px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            #score-title,
+            #high-score-title {
+                font-size: 18px;
+            }
         }
     </style>
 </head>
@@ -250,12 +270,49 @@
             return grid;
         }
 
+        function handleTouchStart(evt) {
+            const touch = evt.touches[0];
+            startX = touch.clientX;
+            startY = touch.clientY;
+        }
+
+        function handleTouchMove(evt) {
+            if (!startX || !startY) {
+                return;
+            }
+            const touch = evt.touches[0];
+            const diffX = startX - touch.clientX;
+            const diffY = startY - touch.clientY;
+
+            if (Math.abs(diffX) > Math.abs(diffY)) {
+                if (diffX > 0) {
+                    grid = handleKeyPress({ key: 'ArrowLeft' }, grid);
+                } else {
+                    grid = handleKeyPress({ key: 'ArrowRight' }, grid);
+                }
+            } else {
+                if (diffY > 0) {
+                    grid = handleKeyPress({ key: 'ArrowUp' }, grid);
+                } else {
+                    grid = handleKeyPress({ key: 'ArrowDown' }, grid);
+                }
+            }
+            startX = null;
+            startY = null;
+        }
+
         let grid = initializeGrid();
         drawGrid(grid);
 
-        document.addEventListener('keydown', event => {
-            grid = handleKeyPress(event, grid);
+        window.addEventListener('keydown', (e) => {
+            grid = handleKeyPress(e, grid);
         });
+
+        let startX = null;
+        let startY = null;
+
+        window.addEventListener('touchstart', handleTouchStart, false);
+        window.addEventListener('touchmove', handleTouchMove, false);
     </script>
 </body>
 </html>
