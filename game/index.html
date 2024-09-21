@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2048 Game with High Score</title>
+    
+    <!-- Import Poppins font from Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif; /* Applying Poppins font */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            height: 100vh;
+            background-color: #faf8ef;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            font-size: 36px;
+            font-weight: 600; /* Bold */
+        }
+
+        #score-title,
+        #high-score-title {
+            margin-bottom: 10px;
+            font-size: 24px;
+            font-weight: 600; /* Bold for visibility */
+        }
+
+        #game-container {
+            display: grid;
+            grid-template-columns: repeat(4, 100px);
+            grid-template-rows: repeat(4, 100px);
+            gap: 10px;
+            background-color: #bbada0;
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .tile {
+            width: 100px;
+            height: 100px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 32px;
+            font-weight: bold;
+            color: #776e65;
+            background-color: #cdc1b4;
+            border-radius: 5px;
+            position: relative;
+        }
+
+        /* Adding color for different tile values */
+        .tile[data-value='2'] {
+            background-color: #eee4da;
+        }
+
+        .tile[data-value='4'] {
+            background-color: #ede0c8;
+        }
+
+        .tile[data-value='8'] {
+            background-color: #f2b179;
+            color: #f9f6f2;
+        }
+
+        .tile[data-value='16'] {
+            background-color: #f59563;
+            color: #f9f6f2;
+        }
+
+        .tile[data-value='32'] {
+            background-color: #f67c5f;
+            color: #f9f6f2;
+        }
+
+        .tile[data-value='64'] {
+            background-color: #f65e3b;
+            color: #f9f6f2;
+        }
+
+        .tile[data-value='128'],
+        .tile[data-value='256'],
+        .tile[data-value='512'],
+        .tile[data-value='1024'],
+        .tile[data-value='2048'] {
+            background-color: #edc850;
+            color: #f9f6f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>2048 Game with High Score</h1>
+    <div id="score-title">Your Score: 0</div>
+    <div id="high-score-title">High Score: 0</div>
+    <div id="game-container"></div>
+
+    <script>
+        const GRID_SIZE = 4;
+        const gameContainer = document.getElementById('game-container');
+        const scoreTitle = document.getElementById('score-title');
+        const highScoreTitle = document.getElementById('high-score-title');
+        let totalScore = 0;
+        let highScore = localStorage.getItem('highScore') || 0;  // Retrieve high score from localStorage
+
+        // Update high score display on page load
+        highScoreTitle.textContent = `High Score: ${highScore}`;
+
+        function initializeGrid() {
+            const grid = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(0));
+            addNewTile(grid);
+            addNewTile(grid);
+            return grid;
+        }
+
+        function addNewTile(grid) {
+            const emptyTiles = [];
+            grid.forEach((row, rowIndex) => {
+                row.forEach((cell, colIndex) => {
+                    if (cell === 0) {
+                        emptyTiles.push([rowIndex, colIndex]);
+                    }
+                });
+            });
+
+            if (emptyTiles.length > 0) {
+                const [row, col] = emptyTiles[Math.floor(Math.random() * emptyTiles.length)];
+                grid[row][col] = Math.random() > 0.9 ? 4 : 2;
+            }
+        }
+
+        function drawGrid(grid) {
+            gameContainer.innerHTML = '';
+            grid.forEach((row) => {
+                row.forEach((value) => {
+                    const tile = document.createElement('div');
+                    tile.classList.add('tile');
+                    tile.setAttribute('data-value', value);
+                    tile.textContent = value > 0 ? value : '';
+                    gameContainer.appendChild(tile);
+                });
+            });
+        }
+
+        function compress(row) {
+            const newRow = row.filter(num => num !== 0);
+            while (newRow.length < GRID_SIZE) newRow.push(0);
+            return newRow;
+        }
+
+        function merge(row) {
+            for (let i = 0; i < GRID_SIZE - 1; i++) {
+                if (row[i] === row[i + 1] && row[i] !== 0) {
+                    row[i] *= 2;
+                    totalScore += row[i]; // Add merged value to total score
+                    row[i + 1] = 0;
+                }
+            }
+            return row;
+        }
+
+        function updateScore() {
+            scoreTitle.textContent = `Your Score: ${totalScore}`;
+            if (totalScore > highScore) {
+                highScore = totalScore;
+                localStorage.setItem('highScore', highScore);  // Save new high score to localStorage
+                highScoreTitle.textContent = `High Score: ${highScore}`;
+            }
+        }
+
+        function moveLeft(grid) {
+            return grid.map(row => compress(merge(compress(row))));
+        }
+
+        function moveRight(grid) {
+            return grid.map(row => compress(merge(compress(row.reverse()))).reverse());
+        }
+
+        function transpose(grid) {
+            return grid[0].map((_, i) => grid.map(row => row[i]));
+        }
+
+        function moveUp(grid) {
+            return transpose(moveLeft(transpose(grid)));
+        }
+
+        function moveDown(grid) {
+            return transpose(moveRight(transpose(grid)));
+        }
+
+        function checkWin(grid) {
+            return grid.some(row => row.includes(2048));
+        }
+
+        function checkGameOver(grid) {
+            if (grid.some(row => row.includes(0))) return false;
+            for (let i = 0; i < GRID_SIZE; i++) {
+                for (let j = 0; j < GRID_SIZE - 1; j++) {
+                    if (grid[i][j] === grid[i][j + 1] || grid[j][i] === grid[j + 1][i]) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        function handleKeyPress(event, grid) {
+            let newGrid;
+            switch (event.key) {
+                case 'ArrowUp':
+                    newGrid = moveUp(grid);
+                    break;
+                case 'ArrowDown':
+                    newGrid = moveDown(grid);
+                    break;
+                case 'ArrowLeft':
+                    newGrid = moveLeft(grid);
+                    break;
+                case 'ArrowRight':
+                    newGrid = moveRight(grid);
+                    break;
+            }
+
+            if (newGrid && JSON.stringify(newGrid) !== JSON.stringify(grid)) {
+                addNewTile(newGrid);
+                drawGrid(newGrid);
+                updateScore();
+                grid = newGrid;
+
+                if (checkWin(grid)) {
+                    alert("Congratulations! You reached 2048!");
+                }
+
+                if (checkGameOver(grid)) {
+                    alert("Game Over! No more possible moves.");
+                }
+            }
+            return grid;
+        }
+
+        let grid = initializeGrid();
+        drawGrid(grid);
+
+        document.addEventListener('keydown', event => {
+            grid = handleKeyPress(event, grid);
+        });
+    </script>
+</body>
+</html>
